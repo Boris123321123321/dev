@@ -1,0 +1,16 @@
+# Сырые выгрузки содержат персональные данные (номера телефонов) —
+# в репозиторий не попадают. В git коммитятся только обезличенные
+# агрегаты в data/*.json.
+*.xlsx
+*.xlsm
+*.csv
+!output/eco_tiers_unit_economics.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# LibreOffice
+.~lock.*#

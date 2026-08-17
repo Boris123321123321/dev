@@ -1,0 +1,54 @@
+{
+  "source_file": "cec572a0-_________31_07_1_1.xlsx",
+  "period_start": "2025-06-01",
+  "period_end": "2026-07-31",
+  "months": 14,
+  "cards": 248950,
+  "bonus_total": 55937468.749900006,
+  "bonus_per_month": 3995533.4821357145,
+  "bonus_per_year": 47946401.78562857,
+  "bonus_per_user_month": 16.049542004963705,
+  "bonus_zero_cards": 0,
+  "bonus_negative_cards": 0,
+  "quantiles_over_period": {
+    "q0": 0.05,
+    "q10": 7.0,
+    "q25": 19.95,
+    "q50": 50.0,
+    "q75": 161.25,
+    "q90": 457.1,
+    "q95": 854.9549999999988,
+    "q99": 2793.0570000000066,
+    "q100": 114072.4
+  },
+  "segments_reference_only": [
+    {
+      "segment": "Средний",
+      "cards": 84909,
+      "bonus_total": 21517830.2,
+      "bonus_per_user_month": 18.10158960096776,
+      "index_to_average": 1.1278570812406616
+    },
+    {
+      "segment": "Репертуарный",
+      "cards": 70459,
+      "bonus_total": 19204675.1,
+      "bonus_per_user_month": 19.46894658088899,
+      "index_to_average": 1.2130530936563642
+    },
+    {
+      "segment": "Амбассадор",
+      "cards": 51329,
+      "bonus_total": 8765901.049899999,
+      "bonus_per_user_month": 12.198480182325223,
+      "index_to_average": 0.7600516063668703
+    },
+    {
+      "segment": "(нет сегмента)",
+      "cards": 42253,
+      "bonus_total": 6449062.4,
+      "bonus_per_user_month": 10.90212089758631,
+      "index_to_average": 0.6792792525926639
+    }
+  ]
+}

@@ -1,220 +1,122 @@
 # CLAUDE.md - AI Assistant Guidelines
 
-This file provides guidance for AI assistants working with this repository.
-
 ## Project Overview
 
-This is a new repository that is being set up. Update this section with:
-- Project name and purpose
-- Core functionality and features
-- Target users/audience
+Финансовая модель механики прогрессивных эко-бонусов за сдачу вторсырья:
+коэффициент начисления растёт вместе с валовой выручкой покупателя.
+
+Продукт репозитория — не приложение, а **воспроизводимая Excel-модель**.
+Книга собирается скриптом из обезличенных агрегатов, руками не правится.
 
 ## Repository Structure
 
 ```
 /home/user/dev/
-├── CLAUDE.md          # AI assistant guidelines (this file)
-└── .git/              # Git repository
+├── README.md                       # Методика, findings, ограничения модели
+├── CLAUDE.md                       # Этот файл
+├── scripts/
+│   ├── aggregate_bonuses.py        # Сырая выгрузка → обезличенные агрегаты
+│   └── build_model.py              # Агрегаты → книга Excel
+├── data/
+│   └── bonus_aggregates.json       # Агрегаты без ПД (коммитятся)
+└── output/
+    └── eco_tiers_unit_economics.xlsx
 ```
-
-> **Note**: This is a newly initialized repository. Update this structure diagram as the project grows.
 
 ## Technology Stack
 
-Document the technologies used in this project:
-
-- **Language**: (e.g., TypeScript, Python, Go)
-- **Framework**: (e.g., React, Express, Django)
-- **Database**: (e.g., PostgreSQL, MongoDB)
-- **Testing**: (e.g., Jest, pytest)
-- **Build Tools**: (e.g., Vite, webpack, esbuild)
-
-## Development Setup
-
-### Prerequisites
-
-List required tools and versions:
-- Node.js / Python / etc.
-- Package manager (npm, yarn, pnpm, pip)
-- Any other dependencies
-
-### Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd dev
-
-# Install dependencies
-# npm install / pip install -r requirements.txt / etc.
-```
+- **Language**: Python 3.11
+- **Libraries**: `openpyxl` (запись книги), `pandas` (чтение выгрузок)
+- **Пересчёт формул**: LibreOffice headless (`soffice`)
 
 ## Common Commands
 
 | Command | Description |
 |---------|-------------|
-| `npm install` | Install dependencies |
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run test` | Run tests |
-| `npm run lint` | Run linter |
-| `npm run format` | Format code |
+| `pip install openpyxl pandas` | Установить зависимости |
+| `python3 scripts/aggregate_bonuses.py <файл.xlsx> --start … --end … -o data/bonus_aggregates.json` | Обезличить выгрузку бонусов |
+| `python3 scripts/build_model.py --bonus-aggregates data/bonus_aggregates.json -o output/eco_tiers_unit_economics.xlsx` | Собрать книгу |
+| `python3 scripts/build_model.py … --revenue <файл.xlsx>` | Собрать книгу на фактической выгрузке ВВ |
+| `soffice --headless --convert-to xlsx --outdir output/ output/*.xlsx` | Пересчитать формулы |
 
-> Update these commands based on the actual project setup.
+Полные примеры — в `README.md`.
 
-## Code Conventions
+## Критичные правила этого репозитория
 
-### File Naming
-- Use kebab-case for file names: `my-component.ts`
-- Use PascalCase for React components: `MyComponent.tsx`
-- Use camelCase for utility files: `myHelper.ts`
+### 1. Персональные данные не коммитятся
 
-### Code Style
-- Follow the project's linter configuration
-- Use consistent indentation (spaces vs tabs)
-- Add meaningful comments for complex logic
-- Keep functions focused and single-purpose
+Сырые выгрузки содержат номера телефонов. В git попадают только агрегаты
+в `data/*.json`. `.gitignore` блокирует `*.xlsx` и `*.csv` (исключение —
+собранная книга в `output/`). Перед коммитом проверяй `git status` на
+случайно добавленные выгрузки.
 
-### Commit Messages
-- Use conventional commits format: `type(scope): description`
-- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-- Keep messages concise but descriptive
+### 2. Книга — артефакт сборки, а не источник правды
 
-## Architecture Guidelines
+Не правь `output/*.xlsx` руками: следующая сборка перезапишет изменения.
+Любая правка модели — это правка `scripts/build_model.py`.
 
-### Directory Organization
+### 3. Формулы, а не посчитанные значения
 
-Describe the intended directory structure:
+Все производные ячейки книги — формулы Excel (`=B7/B8`), чтобы модель
+пересчитывалась при изменении допущений. Единственные захардкоженные числа —
+входные: факты из выгрузок и допущения.
 
-```
-src/
-├── components/     # Reusable UI components
-├── pages/          # Page-level components/routes
-├── services/       # API and external service integrations
-├── utils/          # Utility functions and helpers
-├── types/          # TypeScript type definitions
-├── hooks/          # Custom React hooks (if applicable)
-└── constants/      # Application constants
-```
+### 4. Пересчёт обязателен
 
-### Design Patterns
+`openpyxl` пишет формулы без кэшированных значений: до пересчёта любой ридер
+(`pandas`, `data_only=True`, превью) увидит в них `None`. После каждой сборки
+прогоняй пересчёт и проверяй, что в книге нет `#REF!`, `#VALUE!`, `#DIV/0!`,
+`#NAME?`.
 
-Document key patterns used in this project:
-- Component patterns
-- State management approach
-- Error handling strategies
-- API integration patterns
+### 5. Только формулы уровня Excel 2007
 
-## Testing Guidelines
+LibreOffice не умеет `XLOOKUP`, `FILTER`, `UNIQUE`, `SORT`, `SEQUENCE` —
+такие формулы превращаются в `#NAME?` прямо в файле. Используй
+`INDEX`/`MATCH`, `SUMIFS`, `SUMPRODUCT`, `IFERROR`.
 
-### Test Structure
-- Unit tests alongside source files or in `__tests__` directories
-- Integration tests in dedicated `tests/` directory
-- E2E tests in `e2e/` directory
+### 6. Ссылки на строки — по именам, а не по смещениям
 
-### Running Tests
+Раскладка листов задаётся индексами строк. Смещения вида `tbase+6` уже
+приводили к ссылкам на соседнюю метрику. Для блоков с переменным составом
+строк строй явную карту `метрика → номер строки` (см. `total_map`
+в `sheet_grid`).
 
-```bash
-# Run all tests
-npm test
+## Соглашения книги
 
-# Run tests in watch mode
-npm run test:watch
+Цветовая схема (проверяется глазами при ревью):
 
-# Run with coverage
-npm run test:coverage
-```
+| Оформление | Значение |
+|---|---|
+| Серая заливка | Факт из выгрузки — не менять |
+| Жёлтая заливка | Допущение или ячейка под заполнение |
+| Синий шрифт | Введённое руками число |
+| Чёрный шрифт | Формула |
+| Зелёный шрифт | Ссылка на другой лист |
 
-## Environment Configuration
+Шрифт — Arial. Форматы: `#,##0 ₽` для рублей, `0.0%` для долей (хранить
+дробью: `0.30`, не `30`), `0.00"×"` для множителей, годы — текстом.
 
-### Environment Variables
+Каждое допущение и каждое захардкоженное число сопровождается пояснением
+в соседней ячейке или комментарием: откуда взято и что требует
+подтверждения.
 
-Document required environment variables:
+## Границы модели
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | Database connection string | Yes |
-| `API_KEY` | External API key | Yes |
-| `NODE_ENV` | Environment (development/production) | No |
+Тир определяется **только** валовой выручкой за календарный месяц
+(Старт < 3 000 ₽ · Росток 3 000–12 000 ₽ · Дерево 12 000–35 000 ₽ ·
+Лес ≥ 35 000 ₽). Привязки к АСР-сегментам ВВ (Амбассадор, Средний,
+Репертуарный) в расчёте нет — она завышала присвоение тиров, см. раздел
+findings в `README.md`. Сегменты остались только справкой на листе
+`Данные_бонусы`.
 
-### Configuration Files
+Все временные окна — в календарных месяцах. Окон «90 дней» и «30 дней»
+в модели быть не должно.
 
-- `.env` - Local environment variables (not committed)
-- `.env.example` - Template for environment variables
+## Commit Messages
 
-## Git Workflow
-
-### Branch Naming
-- `feature/description` - New features
-- `fix/description` - Bug fixes
-- `docs/description` - Documentation updates
-- `refactor/description` - Code refactoring
-
-### Pull Request Process
-1. Create a feature branch from main
-2. Make changes and commit with clear messages
-3. Push branch and create PR
-4. Request review from team members
-5. Address feedback and merge
-
-## AI Assistant Notes
-
-### When Working on This Codebase
-
-1. **Read before modifying**: Always read existing code before making changes
-2. **Follow existing patterns**: Match the coding style already in use
-3. **Keep changes focused**: Only modify what's necessary for the task
-4. **Test your changes**: Run tests after making modifications
-5. **Check for security**: Avoid introducing vulnerabilities (XSS, injection, etc.)
-
-### Common Tasks
-
-#### Adding a New Feature
-1. Understand requirements fully
-2. Check for existing similar implementations
-3. Follow established patterns
-4. Add appropriate tests
-5. Update documentation if needed
-
-#### Fixing a Bug
-1. Reproduce the issue first
-2. Identify root cause
-3. Implement minimal fix
-4. Add regression test
-5. Verify fix doesn't break other functionality
-
-#### Refactoring Code
-1. Ensure tests exist before refactoring
-2. Make incremental changes
-3. Run tests after each change
-4. Keep commits atomic and reversible
-
-### Files to Avoid Modifying
-
-- Lock files (`package-lock.json`, `yarn.lock`) - only through package manager
-- Generated files in `dist/`, `build/`, `.next/`
-- IDE configuration files unless specifically requested
-
-## Troubleshooting
-
-### Common Issues
-
-Document common problems and solutions:
-
-| Issue | Solution |
-|-------|----------|
-| Dependencies not installing | Clear node_modules and reinstall |
-| Tests failing | Check for missing env variables |
-| Build errors | Verify TypeScript types are correct |
-
-## Resources
-
-- Project documentation: (link)
-- API documentation: (link)
-- Design system: (link)
-- Team wiki: (link)
+Conventional commits: `type(scope): description`.
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 
 ---
 
-*Last updated: 2026-01-31*
-*Update this file as the project evolves to keep AI assistants informed of current practices.*
+*Last updated: 2026-08-17*
