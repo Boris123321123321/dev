@@ -60,11 +60,25 @@ python3 scripts/build_model.py \
     --bonus-aggregates data/bonus_aggregates.json \
     -o output/eco_tiers_unit_economics.xlsx
 
-# 3. Пересчитать формулы и проверить, что ошибок нет
-#    (openpyxl пишет формулы без кэшированных значений — до пересчёта
-#     любой ридер увидит в них пустоту)
-soffice --headless --convert-to xlsx --outdir output/ output/eco_tiers_unit_economics.xlsx
+# 3. Пересчитать формулы и записать кэшированные значения
+#    (openpyxl пишет формулы без значений — до пересчёта любой читатель
+#     кэша, включая превью в почте и мессенджерах, видит пустоту)
+python3 scripts/recalc_cache.py output/eco_tiers_unit_economics.xlsx
+
+# 4. Сверить значения книги с независимым расчётом на Python
+python3 scripts/verify_model.py output/eco_tiers_unit_economics.xlsx
 ```
+
+Шаг 3 считает формулы движком `formulas` (чистый Python) и дописывает значения
+в XML рядом с формулами — формулы, форматы и оформление остаются на месте.
+Штатный путь через LibreOffice (`soffice --convert-to xlsx`) тоже годится, но
+в песочницах с заблокированными AF_UNIX-сокетами soffice не поднимается и
+падает с «source file could not be loaded».
+
+Шаг 4 обязателен: зелёный пересчёт доказывает только то, что формулы
+**вычислимы**. Сдвинутая на строку ссылка даёт файл без единой ошибки и с
+неверными числами. `verify_model.py` пересчитывает 48 ключевых показателей на
+чистом Python из тех же входных чисел и сравнивает с содержимым книги.
 
 Когда придёт выгрузка ВВ по пользователям — добавить `--revenue`:
 
